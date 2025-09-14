@@ -7,15 +7,23 @@
     
     <!-- 日历组件 -->
     <div class="calendar-container" :class="{ 'collapsed': isCalendarCollapsed }">
+      <!-- 拖拽控制区域 -->
+      <div 
+        class="calendar-drag-handle"
+        @mousedown="startDrag"
+        @touchstart="startDrag"
+      >
+        <span class="drag-icon">{{ isCalendarCollapsed ? '⌄' : '⌃' }}</span>
+      </div>
+      
+
+      
       <div class="calendar-header">
         <div class="calendar-nav">
           <button @click="navigate(-1)" class="calendar-nav-btn">‹</button>
           <h2>{{ isCalendarCollapsed ? currentWeekRange : currentMonthYear }}</h2>
           <button @click="navigate(1)" class="calendar-nav-btn">›</button>
         </div>
-        <button @click="toggleCalendar" class="toggle-btn">
-          {{ isCalendarCollapsed ? '展开' : '折叠' }}
-        </button>
       </div>
       
       <!-- 日历网格 -->
@@ -133,7 +141,11 @@ export default {
       currentDate: new Date(),
       selectedDate: null,
       weekDays: ['日', '一', '二', '三', '四', '五', '六'],
-      isCalendarCollapsed: true // 默认折叠日历，只显示一周
+      isCalendarCollapsed: true, // 默认折叠日历，只显示一周
+      scrollHandler: null,
+      lastScrollTop: 0,
+      dragStartY: 0, // 拖拽起始Y坐标
+      touchStartY: 0 // 触摸起始Y坐标
     }
   },
   computed: {
@@ -267,6 +279,47 @@ export default {
     }
   },
   methods: {
+    // 处理鼠标滚轮事件
+    handleWheel(event) {
+      console.log('Wheel event triggered:', event.deltaY)
+      
+      // 向下滚动（deltaY为正）
+      if (event.deltaY > 50) {
+        console.log('Wheel down - collapse calendar')
+        this.isCalendarCollapsed = true
+      }
+      // 向上滚动（deltaY为负）
+      else if (event.deltaY < -50) {
+        console.log('Wheel up - expand calendar')
+        this.isCalendarCollapsed = false
+      }
+    },
+    
+    // 处理触摸事件（移动设备）
+    handleTouch(event) {
+      if (event.type === 'touchstart') {
+        this.touchStartY = event.touches[0].clientY
+        console.log('Touch start at:', this.touchStartY)
+      } else if (event.type === 'touchmove') {
+        const touchY = event.touches[0].clientY
+        const diff = touchY - this.touchStartY
+        
+        console.log('Touch move:', touchY, 'Diff:', diff)
+        
+        // 向上滑动（手指向下移动，diff为正）
+        if (diff > 50) {
+          console.log('Touch up - expand calendar')
+          this.isCalendarCollapsed = false
+          this.touchStartY = touchY // 重置起点
+        }
+        // 向下滑动（手指向上移动，diff为负）
+        else if (diff < -50) {
+          console.log('Touch down - collapse calendar')
+          this.isCalendarCollapsed = true
+          this.touchStartY = touchY // 重置起点
+        }
+      }
+    },
     formatDate(dateString) {
       const date = new Date(dateString)
       const year = date.getFullYear()
@@ -318,20 +371,77 @@ export default {
       }
     },
     
-    // 切换日历的折叠状态
-    toggleCalendar() {
-      this.isCalendarCollapsed = !this.isCalendarCollapsed
-    },
-    
     // 检查是否是今天
     isToday(dateStr) {
       const today = this.formatDate(new Date())
       return dateStr === today
+    },
+    
+
+    
+    // 拖拽开始
+    startDrag(event) {
+      console.log('Drag started')
+      this.dragStartY = event.clientY || event.touches[0].clientY
+      
+      // 添加拖拽事件监听
+      const mouseMoveHandler = (e) => this.onDrag(e)
+      const mouseUpHandler = () => this.endDrag(mouseMoveHandler, mouseUpHandler)
+      
+      document.addEventListener('mousemove', mouseMoveHandler)
+      document.addEventListener('mouseup', mouseUpHandler)
+      document.addEventListener('touchmove', mouseMoveHandler)
+      document.addEventListener('touchend', mouseUpHandler)
+    },
+    
+    // 拖拽过程中
+    onDrag(event) {
+      const currentY = event.clientY || event.touches[0].clientY
+      const diff = currentY - this.dragStartY
+      
+      console.log('Dragging:', diff)
+      
+      // 向下拖拽超过20px，展开日历
+      if (diff < -20) {
+        this.isCalendarCollapsed = false
+      }
+      // 向上拖拽超过20px，收起日历
+      else if (diff > 20) {
+        this.isCalendarCollapsed = true
+      }
+    },
+    
+    // 拖拽结束
+    endDrag(moveHandler, upHandler) {
+      console.log('Drag ended')
+      // 移除拖拽事件监听
+      document.removeEventListener('mousemove', moveHandler)
+      document.removeEventListener('mouseup', upHandler)
+      document.removeEventListener('touchmove', moveHandler)
+      document.removeEventListener('touchend', upHandler)
     }
   },
   mounted() {
     // 组件挂载时重新加载日记数据
     this.$store.dispatch('loadDiaries')
+    
+    // 添加鼠标滚轮事件监听
+    console.log('Adding wheel event listener to window')
+    this.wheelHandler = this.handleWheel.bind(this)
+    window.addEventListener('wheel', this.wheelHandler)
+    
+    // 添加触摸事件监听（用于移动设备）
+    console.log('Adding touch events listeners')
+    this.touchHandler = this.handleTouch.bind(this)
+    window.addEventListener('touchstart', this.touchHandler)
+    window.addEventListener('touchmove', this.touchHandler)
+  },
+  
+  beforeDestroy() {
+    // 组件销毁前移除事件监听，避免内存泄漏
+    window.removeEventListener('wheel', this.wheelHandler)
+    window.removeEventListener('touchstart', this.touchHandler)
+    window.removeEventListener('touchmove', this.touchHandler)
   }
 }
 </script>
@@ -368,7 +478,7 @@ header h1 {
 
   .calendar-header {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
     margin-bottom: 16px;
   }
@@ -387,30 +497,48 @@ header h1 {
     text-align: center;
   }
   
-  .toggle-btn {
-    background-color: #f0f0f0;
+
+
+.calendar-nav-btn {
+    background: none;
     border: none;
-    padding: 6px 12px;
-    border-radius: 4px;
+    font-size: 20px;
     cursor: pointer;
-    font-size: 14px;
+    color: #666;
+    padding: 4px 8px;
+    border-radius: 4px;
     transition: background-color 0.2s;
   }
   
-  .toggle-btn:hover {
-    background-color: #e0e0e0;
+  /* 拖拽控制区域样式 */
+  .calendar-drag-handle {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 8px 16px;
+    cursor: grab;
+    user-select: none;
+    border-radius: 4px;
+    background-color: rgba(255, 255, 255, 0.8);
+    transition: background-color 0.2s;
+    z-index: 100;
   }
+  
+  .calendar-drag-handle:hover {
+    background-color: rgba(255, 255, 255, 1);
+  }
+  
+  .calendar-drag-handle:active {
+    cursor: grabbing;
+  }
+  
+  .drag-icon {
+    font-size: 18px;
+    color: #666;
+  }
+  
 
-.calendar-nav-btn {
-  background: none;
-  border: none;
-  font-size: 20px;
-  cursor: pointer;
-  color: #666;
-  padding: 4px 8px;
-  border-radius: 4px;
-  transition: background-color 0.2s;
-}
 
 .calendar-nav-btn:hover {
   background-color: #f5f5f5;
