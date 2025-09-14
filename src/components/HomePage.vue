@@ -1,21 +1,9 @@
 <template>
   <div class="homepage">
-    <header>
-      <h1>我的日记</h1>
-      <router-link :to="'/edit'" class="btn btn-primary">写日记</router-link>
-    </header>
-    
     <!-- 日历组件 -->
     <div class="calendar-container" :class="{ 'collapsed': isCalendarCollapsed }">
-      <!-- 拖拽控制区域 -->
-      <div 
-        class="calendar-drag-handle"
-        @mousedown="startDrag"
-        @touchstart="startDrag"
-      >
-        <span class="drag-icon">{{ isCalendarCollapsed ? '⌄' : '⌃' }}</span>
-      </div>
-      
+      <!-- 写日记按钮 - 移动到日历组件右上角 -->
+      <router-link :to="'/edit'" class="calendar-diary-btn">写日记</router-link>
 
       
       <div class="calendar-header">
@@ -449,21 +437,27 @@ export default {
 <style scoped>
 .homepage {
   padding: 16px;
-  max-width: 800px;
-  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
+/* 日历右上角写日记按钮样式 */
+.calendar-diary-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: #4CAF50;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 4px;
+  text-decoration: none;
+  font-size: 14px;
+  transition: background-color 0.2s;
+  z-index: 99;
 }
 
-header h1 {
-  margin: 0;
-  font-size: 28px;
-  color: #333;
+.calendar-diary-btn:hover {
+  background-color: #45a049;
 }
 
 /* 日历组件样式 */
@@ -474,6 +468,9 @@ header h1 {
     padding: 16px;
     margin-bottom: 24px;
     transition: all 0.3s ease;
+    position: relative;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .calendar-header {
