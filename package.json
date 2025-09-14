@@ -1,0 +1,33 @@
+{
+  "name": "vue-diary-app",
+  "version": "1.0.0",
+  "description": "A Vue.js diary app for Android",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "cap": "cap"
+  },
+  "dependencies": {
+    "@capacitor/android": "^5.0.0",
+    "@capacitor/core": "^5.0.0",
+    "@capacitor/preferences": "^5.0.0",
+    "vue": "^3.3.4",
+    "vue-router": "^4.1.5",
+    "vuex": "^4.0.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.4.3",
+    "@vitejs/plugin-vue": "^4.2.3",
+    "vite": "^4.4.5"
+  },
+  "keywords": [
+    "vue",
+    "diary",
+    "android",
+    "capacitor"
+  ],
+  "author": "",
+  "license": "MIT"
+}
